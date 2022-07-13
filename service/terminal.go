@@ -73,7 +73,10 @@ func (t *terminal) WsHandler(w http.ResponseWriter, r *http.Request) {
 	// 处理关闭
 	defer func() {
 		logger.Info("关闭容器 " + containerName + "的pty终端")
-		pty.Close()
+		err := pty.Close()
+		if err != nil {
+			return
+		}
 	}()
 	// 初始化pod所在的corev1资源组
 	// PodExecOptions struct 包括Container stdout stdout  Command 等结构
