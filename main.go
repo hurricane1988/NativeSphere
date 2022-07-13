@@ -1,14 +1,14 @@
 package main
 
 import (
+	"NativeSphere/config"
+	"NativeSphere/controller"
+	"NativeSphere/db"
+	"NativeSphere/middle"
+	"NativeSphere/service"
+	"NativeSphere/utils"
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
-	"k8s-platform/config"
-	"k8s-platform/controller"
-	"k8s-platform/db"
-	"k8s-platform/middle"
-	"k8s-platform/service"
-	"k8s-platform/utils"
 )
 
 // 设置打印格式信息
