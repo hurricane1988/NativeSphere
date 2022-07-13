@@ -5,8 +5,10 @@ import (
 	"NativeSphere/controller"
 	"NativeSphere/db"
 	"NativeSphere/middle"
+	"NativeSphere/pkg/version"
 	"NativeSphere/service"
 	"NativeSphere/utils"
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
 )
@@ -25,6 +27,7 @@ var (
 )
 
 func main() {
+	fmt.Println(version.Get())
 	// 初始化k8s client
 	service.K8s.Init() // 可以使用service.K8s.ClientSet挎包调用
 	// 初始化数据库
