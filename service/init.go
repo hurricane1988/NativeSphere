@@ -21,14 +21,14 @@ type k8s struct {
 func (k *k8s) Init() {
 	conf, err := clientcmd.BuildConfigFromFlags("", config.Kubeconfig)
 	if err != nil {
-		logger.Error("创建k8s配置失败," + err.Error())
+		logger.Error("初始化k8s配置失败," + err.Error())
 	}
 
 	clientSet, err := kubernetes.NewForConfig(conf)
 	if err != nil {
-		logger.Error("创建k8s clientSet失败， " + err.Error())
+		logger.Error("初始化k8s clientSet失败， " + err.Error())
 	} else {
-		logger.Info("创建k8s clientSet成功!")
+		logger.Info("初始化k8s clientSet成功!")
 	}
 	k.ClientSet = clientSet
 }

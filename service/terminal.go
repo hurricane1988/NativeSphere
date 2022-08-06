@@ -11,13 +11,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
-	"log"
 	"net/http"
-	"time"
 )
 
-//TerminalMessage定义了终端和容器shell交互内容的格式 //Operation是操作类型
-//Data是具体数据内容 //Rows和Cols可以理解为终端的行数和列数，也就是宽、高
+// TerminalMessage定义了终端和容器shell交互内容的格式 //Operation是操作类型
+// Data是具体数据内容 //Rows和Cols可以理解为终端的行数和列数，也就是宽、高
 
 type TerminalMessage struct {
 	Operation string `json:"operation"`
@@ -29,7 +27,7 @@ type TerminalMessage struct {
 // 初始化一个websocket.Upgrader类型的对象，用于http协议升级为websocket协议
 var upgrader = func() websocket.Upgrader {
 	upgrader := websocket.Upgrader{}
-	upgrader.HandshakeTimeout = time.Second * 2
+	upgrader.HandshakeTimeout = config.HandshakeTimeout
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 	}
@@ -57,17 +55,21 @@ func (t *terminal) WsHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Error("初始化kubernetes配置失败,错误信息," + err.Error())
 	}
 	// 解析form入参，获取namespace、podName、containerName参数
+	// 如果解析失败
 	if err := r.ParseForm(); err != nil {
+		logger.Error("解析参数失败,错误信息," + err.Error())
 		return
 	}
+	// 如果解析成功
 	namespace := r.Form.Get("namespace")
 	podName := r.Form.Get("podName")
 	containerName := r.Form.Get("containerName")
 	logger.Info("exec pod: %s, container: %s, namespace: %s\n", podName, containerName, namespace)
+
 	// new一个TerminalSession类型的pty实例
 	pty, err := NewTerminalSession(w, r, nil)
 	if err != nil {
-		logger.Error("获取容器 " + containerName + "的pty终端失败,错误信息," + err.Error())
+		logger.Error("实例化 " + containerName + " 的pty终端失败,错误信息," + err.Error())
 		return
 	}
 	// 处理关闭
@@ -78,21 +80,25 @@ func (t *terminal) WsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}()
-	// 初始化pod所在的corev1资源组
-	// PodExecOptions struct 包括Container stdout stdout  Command 等结构
-	// scheme.ParameterCodec 应该是pod 的GVK （GroupVersion & Kind）之类的
-	// URL长相:
-	// https://192.168.1.11:6443/api/v1/namespaces/default/pods/nginx-wf2-778d88d7c-7rmsk/exec?command=%2Fbin%2Fbash&container=nginx-wf2&stderr=true&stdin=true&stdout=true&tty=true
+	/* 初始化pod所在的corev1资源组
+	PodExecOptions struct 包括Container stdout stdout  Command 等结构
+	scheme.ParameterCodec 应该是pod 的GVK （GroupVersion & Kind）之类的
+	URL长相:
+	https://192.168.1.11:6443/api/v1/namespaces/default/pods/nginx-wf2-778d88d7c-7rmsk/exec?command=%2Fbin%2Fbash&container=nginx-wf2&stderr=true&stdin=true&stdout=true&tty=true
+	*/
+	// 组装POST请求
 	req := K8s.ClientSet.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
-		Namespace(namespace).SubResource("exec").VersionedParams(&v1.PodExecOptions{
-		Container: containerName,
-		Command:   []string{"/bin/bash"},
-		Stderr:    true,
-		Stdin:     true,
-		Stdout:    true,
-	}, scheme.ParameterCodec)
+		Namespace(namespace).
+		SubResource("exec").
+		VersionedParams(&v1.PodExecOptions{
+			Container: containerName,
+			Command:   []string{"/bin/bash"},
+			Stderr:    true,
+			Stdin:     true,
+			Stdout:    true,
+		}, scheme.ParameterCodec)
 	fmt.Println(req.URL())
 
 	// remotecommand 主要实现了http 转 SPDY 添加X-Stream-Protocol-Version相关header 并发送请求
@@ -132,51 +138,41 @@ func NewTerminalSession(w http.ResponseWriter, r *http.Request, responseHeader h
 	return session, nil
 }
 
-// Done 关闭doneChan,关闭后触发退出终端
-func (t *TerminalSession) Done() {
-	close(t.doneChan)
-}
-
-// Next 获取web端是否resize,以及是否退出终端
-func (t *TerminalSession) Next() *remotecommand.TerminalSize {
-	select {
-	case size := <-t.sizeChan:
-		return &size
-	case <-t.doneChan:
-		return nil
-	}
-}
-
 // 用于读取web端的输入，接收web端输入的指令内容
 func (t *TerminalSession) Read(p []byte) (int, error) {
 	_, message, err := t.wsConn.ReadMessage()
 	if err != nil {
-		log.Printf("read message err: %v", err)
-		return copy(p, config.END_OF_TRANSMISSION), err
+		logger.Error(errors.New("读取parse信息失败,错误信息," + err.Error()))
+		return copy(p, config.EndOfTransmission), err
 	}
+	// 反序列化
 	var msg TerminalMessage
 	if err := json.Unmarshal([]byte(message), &msg); err != nil {
 		logger.Error(errors.New("读取parse信息失败,错误信息," + err.Error()))
 		// return 0, nil
-		return copy(p, config.END_OF_TRANSMISSION), err
+		return copy(p, config.EndOfTransmission), err
 	}
+	// 逻辑判断
 	switch msg.Operation {
+	// 如果是标准输入
 	case "stdin":
 		return copy(p, msg.Data), nil
+	// 窗口调整大小
 	case "resize":
 		t.sizeChan <- remotecommand.TerminalSize{Width: msg.Cols, Height: msg.Rows}
 		return 0, nil
+	// ping	无内容交互
 	case "ping":
 		return 0, nil
 	default:
-		logger.Info(errors.New("无法确认的message类型,当前类型," + msg.Operation))
+		logger.Info(errors.New("无法确认的message类型,当前类型为 " + msg.Operation))
 		// return 0, nil
-		return copy(p, config.END_OF_TRANSMISSION), fmt.Errorf("unknown message type '%s'",
+		return copy(p, config.EndOfTransmission), fmt.Errorf("unknown message type '%s'",
 			msg.Operation)
 	}
 }
 
-//用于向web端输出，接收web端的指令后，将结果返回出去
+// 写数据的方法，拿到apiserver的返回内容，向web端输出
 func (t *TerminalSession) Write(p []byte) (int, error) {
 	msg, err := json.Marshal(TerminalMessage{
 		Operation: "stdout",
@@ -193,7 +189,22 @@ func (t *TerminalSession) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// Done 标记关闭doneChan,关闭后触发退出终端
+func (t *TerminalSession) Done() {
+	close(t.doneChan)
+}
+
 // Close 用于关闭websocket连接
 func (t *TerminalSession) Close() error {
 	return t.wsConn.Close()
+}
+
+// Next 获取web端是否resize,以及是否退出终端
+func (t *TerminalSession) Next() *remotecommand.TerminalSize {
+	select {
+	case size := <-t.sizeChan:
+		return &size
+	case <-t.doneChan:
+		return nil
+	}
 }

@@ -60,9 +60,9 @@ const (
 	DbPassword = "root"
 	LogMode    = true
 	/* 连接池配置 */
-	MaxIdleConns = 10               //最大空闲连接
-	MaxOpenConns = 100              //最大连接数
-	MaxLifeTime  = 30 * time.Second //最大生存时间
+	MaxIdleConns = 10               // 最大空闲连接
+	MaxOpenConns = 100              // 最大连接数
+	MaxLifeTime  = 30 * time.Second // 最大生存时间
 )
 
 // 登录账号
@@ -86,5 +86,6 @@ var (
 
 // websocket全局配置
 const (
-	END_OF_TRANSMISSION = "\u0004"
+	EndOfTransmission = "\u0004"
+	HandshakeTimeout  = time.Second * 2
 )

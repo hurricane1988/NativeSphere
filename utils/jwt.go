@@ -8,14 +8,6 @@ import (
 	"time"
 )
 
-//
-//import (
-//	"github.com/dgrijalva/jwt-go"
-//	"github.com/wonderivan/logger"
-//	"k8s-platform/config"
-//	"time"
-//)
-
 var JWTToken jwtToken
 
 // 定义jwtToken结构体
@@ -50,8 +42,8 @@ func GenerateToken(username, password string) (string, error) {
 	return token, err
 }
 
-//// ParseToken 解析token函数方法
-//func ParseToken(token string) (*Claims, error) {
+// // ParseToken 解析token函数方法
+// func ParseToken(token string) (*Claims, error) {
 //	tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 //		return jwtSecret, nil
 //	})
@@ -61,7 +53,7 @@ func GenerateToken(username, password string) (string, error) {
 //		}
 //	}
 //	return nil, err
-//}
+// }
 
 // ParseToken 解析token函数
 func (*jwtToken) ParseToken(tokenString string) (claims *CustomClaims, err error) {
