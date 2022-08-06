@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 // 设置打印格式信息
@@ -47,6 +48,11 @@ func main() {
 	controller.Router.InitApiRouter(router)
 	// 打印彩色终端
 	utils.PrintColor()
+	// 启动websocket服务(因websocket是异步函数,需在gin启动之前启动)
+	go func() {
+		http.HandleFunc("/ws", service.Terminal.WsHandler)
+		http.ListenAndServe(config.WebSocketListenAddr, nil)
+	}()
 	// gin程序启动
 	err := router.Run(config.ListenAddr)
 	if err != nil {

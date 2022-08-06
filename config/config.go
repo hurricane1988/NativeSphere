@@ -86,6 +86,7 @@ var (
 
 // websocket全局配置
 const (
-	EndOfTransmission = "\u0004"
-	HandshakeTimeout  = time.Second * 2
+	EndOfTransmission   = "\u0004"
+	HandshakeTimeout    = time.Second * 2
+	WebSocketListenAddr = "0.0.0.0:8081"
 )

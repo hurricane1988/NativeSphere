@@ -99,14 +99,15 @@ func (t *terminal) WsHandler(w http.ResponseWriter, r *http.Request) {
 			Stdin:     true,
 			Stdout:    true,
 		}, scheme.ParameterCodec)
-	fmt.Println(req.URL())
+	logger.Info("exec post request url: ", req)
 
 	// remotecommand 主要实现了http 转 SPDY 添加X-Stream-Protocol-Version相关header 并发送请求
 	executor, err := remotecommand.NewSPDYExecutor(conf, "POST", req.URL())
 	if err != nil {
+		logger.Error("建立SPDY连接失败," + err.Error())
 		return
 	}
-	// 建立链接之后从请求的sream中发送、读取数据
+	// 与kubelet建立stream连接
 	err = executor.Stream(remotecommand.StreamOptions{
 		Stdout:            pty,
 		Stdin:             pty,
@@ -115,11 +116,10 @@ func (t *terminal) WsHandler(w http.ResponseWriter, r *http.Request) {
 		Tty:               true,
 	})
 	if err != nil {
-		msg := fmt.Sprintf("Exec to pod error! err : %v", err)
-		logger.Info(msg)
-		// 将报错返回出去
-		pty.Write([]byte(msg))
-		// 标记退出stream流
+		logger.Error("exec pod command failed," + err.Error())
+		// 将报错返回给web端
+		pty.Write([]byte("exec pod command failed," + err.Error()))
+		// 标记关闭terminal
 		pty.Done()
 	}
 }
