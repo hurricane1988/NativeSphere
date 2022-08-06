@@ -69,16 +69,13 @@ func (t *terminal) WsHandler(w http.ResponseWriter, r *http.Request) {
 	// new一个TerminalSession类型的pty实例
 	pty, err := NewTerminalSession(w, r, nil)
 	if err != nil {
-		logger.Error("实例化 " + containerName + " 的pty终端失败,错误信息," + err.Error())
+		logger.Error("get pty failed: %v\n", err)
 		return
 	}
 	// 处理关闭
 	defer func() {
-		logger.Info("关闭容器 " + containerName + "的pty终端")
-		err := pty.Close()
-		if err != nil {
-			return
-		}
+		logger.Info("close session successfully!")
+		pty.Close()
 	}()
 	/* 初始化pod所在的corev1资源组
 	PodExecOptions struct 包括Container stdout stdout  Command 等结构
@@ -98,6 +95,7 @@ func (t *terminal) WsHandler(w http.ResponseWriter, r *http.Request) {
 			Stderr:    true,
 			Stdin:     true,
 			Stdout:    true,
+			TTY:       true,
 		}, scheme.ParameterCodec)
 	logger.Info("exec post request url: ", req)
 
