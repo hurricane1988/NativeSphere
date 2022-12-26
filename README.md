@@ -1,10 +1,13 @@
 
-<h2 align="center">
-<b>The container platform tailored for <i>nativeSphere multi-cloud, datacenter, and edge</i> management</b>
-</h2>
+<p align="center">
+The container platform tailored for <i>nativeSphere multi-cloud</i> management
+</p>
 
-<p align=center>
-<a href="https://goreportcard.com/report/github.com/NativeSphere"><img src="https://goreportcard.com/badge/github.com/NativeSphere" alt="A+"></a>
+<p align="center">
+<a  target="_blank"><img src="https://img.shields.io/github/v/release/hurricane1988/NativeSphere" /></a>
+<a  target="_blank"><img src="https://img.shields.io/github/downloads/hurricane1988/NativeSphere/total"/></a>
+<a  target="_blank"><img src="https://img.shields.io/github/issues/hurricane1988/NativeSphere"/></a>
+<a  target="_blank"><img src="https://img.shields.io/github/go-mod/go-version/hurricane1988/NativeSphere"/></a>
 </p>
 
 ## NativeSphere容器管理平台
